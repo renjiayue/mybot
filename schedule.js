@@ -48,7 +48,7 @@ const  scheduleCronstyle = async()=>{
       pollingObj.curIndex = pollingObj.curIndex+1
     }
     //3分钟开始每6分钟定时执行一次:
-    schedule.scheduleJob('0 0/1 * * * ? ',async()=>{
+    schedule.scheduleJob('0 3/6 * * * ? ',async()=>{
       if(pollingObj.isPollAgain){
         console.log('scheduleCronstyle:' + new Date());
         //3  13 为最终状态
