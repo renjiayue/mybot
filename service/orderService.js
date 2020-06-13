@@ -55,7 +55,7 @@ class OrderService extends BaseService{
                 }
                 if(order.tk_order_role==2 && (order.order_type=='天猫'||order.order_type=='淘宝'||order.order_type=='聚划算')){
                     console.log(order.order_type+'二方订单,用户返利入库或更新开始')
-                    let shareList = await OrderService.shareModel.findByFilterOrder(null,{item_id:order.item_id},'updatedAt')
+                    let shareList = await OrderService.shareModel.findByFilterOrder(null,{item_id:order.item_id},[['updatedAt', 'DESC']])
                     // console.log('share',shareList)
                     if(!shareList){
                         return

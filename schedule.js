@@ -1,12 +1,15 @@
 const schedule = require('node-schedule');
 const orderService = require('./service/orderService')
 const taokoulingCom = require('./taokoulingCom')
+const Sequelize = require('sequelize')
+const Op = Sequelize.Op
 
 const  scheduleCronstyle = async()=>{
     //0分钟开始每6分钟定时执行一次:
-    schedule.scheduleJob('0 0/3 * * * ? ',async()=>{
+    schedule.scheduleJob('0 0/6 * * * ? ',async()=>{
         let nodeCurdate = new Date()
-        let curdate = new Date(nodeCurdate.getTime()+(480*60-1)*1000)
+        // let curdate = new Date(nodeCurdate.getTime()+(480*60-1)*1000)
+        let curdate = nodeCurdate
         let sixBefore = new Date(curdate.getTime()-(20*60-1)*1000)
         // console.log(sixBefore.Format("yyyy-MM-dd hh:mm:ss"))
         // console.log('scheduleCronstyle:' + curdate.Format("yyyy-MM-dd hh:mm:ss"));
@@ -14,18 +17,64 @@ const  scheduleCronstyle = async()=>{
         console.log(sixBefore.Format("yyyy-MM-dd hh:mm:ss"))
         console.log(curdate.Format("yyyy-MM-dd hh:mm:ss"))
         let orderDetails = await taokoulingCom.getOrderDetails({start_time:sixBefore.Format("yyyy-MM-dd hh:mm:ss"),end_time:curdate.Format("yyyy-MM-dd hh:mm:ss")
-            ,query_type:'1',member_type:'2',page_size:100})
+            ,query_type:'2',member_type:'2',page_size:100})
         orderService.processOrderBatch(orderDetails)
         // orderService.
     }); 
+    
+    //轮询对象
+    var pollingObj = {
+      isPollAgain:true,
+      pollEndTime:'',
+      pollTimeList:[],
+      curIndex:0,//当前轮询索引
+    }
+    /**
+     * 轮询处理
+     */
+    async function pollProcess(){
+      if(!pollingObj.pollTimeList[pollingObj.curIndex]){
+        pollingObj.isPollAgain = true
+        pollingObj.pollTimeList = []
+        pollingObj.curIndex = 0
+        return
+      }
+      console.log('当前轮询到第N条'+(pollingObj.curIndex+1))
+      console.log('当前轮询时间段为'+pollingObj.pollTimeList[pollingObj.curIndex].startTime+" "+pollingObj.pollTimeList[pollingObj.curIndex].endTime)
+      let orderDetails = await taokoulingCom.getOrderDetails({start_time:pollingObj.pollTimeList[pollingObj.curIndex].startTime,end_time:pollingObj.pollTimeList[pollingObj.curIndex].endTime
+        ,query_type:'2',member_type:'2',page_size:100})
+      // console.log(orderDetails)
+      orderService.processOrderBatch(orderDetails)
+      pollingObj.curIndex = pollingObj.curIndex+1
+    }
     //3分钟开始每6分钟定时执行一次:
-    schedule.scheduleJob('0 3/6 * * * ? ',async()=>{
+    schedule.scheduleJob('0 0/1 * * * ? ',async()=>{
+      if(pollingObj.isPollAgain){
         console.log('scheduleCronstyle:' + new Date());
-        // let curdate = new Date()
-        // let sixBefore = new Date(curdate.getTime()-(6*60-1)*1000)
-        // let orderDetails = await taokoulingCom.getOrderDetails({start_time:sixBefore.Format("yyyy-MM-dd hh:mm:ss"),end_time:curdate.Format("yyyy-MM-dd hh:mm:ss")
-        //     ,query_type:'1',member_type:'2',page_size:100})
-        // orderService.processOrderBatch(orderDetails)
+        //3  13 为最终状态
+        let unclearedList = await orderService.baseFindByFilterOrder(null,{tk_status:{[Op.notIn]: [3, 13]}},[['tb_paid_time', 'ASC']])
+        if(unclearedList){
+          // console.log(unclearedList)
+          for(let i in unclearedList){
+            let unclearedOrder = unclearedList[i].dataValues
+            let tb_paid_time = new Date(unclearedOrder.tb_paid_time)
+            // if(pollingObj.pollTimeList.length>0){
+            //   console.log('pollTimeListlength'+pollingObj.pollTimeList.length)
+            // }
+            if(pollingObj.pollTimeList.length==0 || 
+                (unclearedOrder.tb_paid_time>pollingObj.pollTimeList[pollingObj.pollTimeList.length-1].endTime)){
+              let endTime = new Date(tb_paid_time.getTime()+(20*60-1)*1000)
+              pollingObj.pollTimeList.push({startTime:tb_paid_time.Format("yyyy-MM-dd hh:mm:ss"),endTime:endTime.Format("yyyy-MM-dd hh:mm:ss")})
+            }
+          }
+          console.log(pollingObj)
+          pollingObj.isPollAgain = false
+          pollProcess()
+        }
+      }else{
+        console.log('false')
+        pollProcess()
+      }
     }); 
 }
 
@@ -55,6 +104,7 @@ Date.prototype.Format = function(fmt)
   fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length)));   
   return fmt;   
 }
+// console.log(new Date('2020-06-13 19:53:00'))
 scheduleCronstyle();
 
 // module.exports = 

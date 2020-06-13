@@ -24,8 +24,8 @@ class BaseModel{
 	// }
 	// 带过滤条件的排序精确查询
 	findByFilterOrder(attributes, where, order){
-		let orderOps = [[order, 'DESC']]
-		return attributes ? this.model.findAll({attributes: attributes, where: where, order: orderOps}) : this.model.findAll({where: where, order: orderOps})
+		// let orderOps = [[order, 'DESC']]
+		return attributes ? this.model.findAll({attributes: attributes, where: where, order: order}) : this.model.findAll({where: where, order: order})
 	}
 	// 带过滤条件的模糊查询
 	findLikeByFilter(attributes, where){
