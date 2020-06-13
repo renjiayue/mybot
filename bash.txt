@@ -1,0 +1,10 @@
+npm install wechaty
+npm install qrcode-terminal
+npm install wechaty-puppet-padplus
+
+npm install sequelize
+npm install mysql2
+
+npm install node-schedule
+
+node mybot.js
