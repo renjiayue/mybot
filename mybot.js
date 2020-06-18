@@ -448,13 +448,22 @@ async function tklProcess(msg,id,title){
   try {
     // console.log('wx_id',msg.payload.fromId)
     userInfo = await userService.baseFindByFilter(null,{'wx_id':wx_id})
-    if(userInfo){
+    if(userInfo[0]){
       userInfo = userInfo[0].dataValues
       // console.log(userInfo)
       income_radio = userInfo.income_radio
+    }else{
+      await userService.baseCreate({
+        wx_id:wx_id,
+        income_radio:0.8,
+        total_commission:0,
+        comment:msg.from().name()
+      })
+      userInfo = await userService.baseFindByFilter(null,{'wx_id':wx_id})
     }
   } catch (error) {
     console.log('订单分享查询用户信息失败')
+    console.log(error)
   }
   console.log('income_radio',income_radio)
   msg.say('正在查询优惠信息...')
