@@ -460,6 +460,9 @@ async function tklProcess(msg,id,title){
         comment:msg.from().name()
       })
       userInfo = await userService.baseFindByFilter(null,{'wx_id':wx_id})
+      userInfo = userInfo[0].dataValues
+      // console.log(userInfo)
+      income_radio = userInfo.income_radio
     }
   } catch (error) {
     console.log('订单分享查询用户信息失败')
