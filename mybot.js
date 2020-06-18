@@ -165,7 +165,7 @@ async function onMessage (msg) {
       for(let i in msgArray){
         console.log(msgArray[i])
       }
-      let orderDetails = await taokoulingCom.getOrderDetails({start_time:msgArray[1]+' '+msgArray[2],end_time:msgArray[3]+' '+msgArray[4],query_type:'1',member_type:'2',page_size:100})
+      let orderDetails = await taokoulingCom.getOrderDetails({start_time:msgArray[1]+' '+msgArray[2],end_time:msgArray[3]+' '+msgArray[4],query_type:'2',member_type:'2',page_size:100})
       orderService.processOrderBatch(orderDetails)
       return
     }
