@@ -45,7 +45,6 @@ module.exports={
                 body: params
             }, function(error, response, body) {
                 if (!error && response.statusCode == 200) {
-                    // console.log('11')
                     if(body.data){
                         console.log(body.data)
                         console.log(body.data.results)

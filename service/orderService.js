@@ -80,7 +80,6 @@ class OrderService extends BaseService{
                             } catch (error) {
                                 console.log('绑定淘宝后缀发送消息异常')
                             }
-                            mybot.sendStringMessageToAdmin('用户'+shareUser.comment+'绑定淘宝后缀成功:'+endSix)
                         }
                         if(shareUser.tb_part_id==endSix){
                             let shareOrder;

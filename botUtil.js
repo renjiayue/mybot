@@ -12,6 +12,7 @@ class BotUtil {
             name: botConfig.bot.name, 
           
           }),
+        //   this.bot.start()
         this.adminList = new Array()
     }
     //  mybot = {a:1}
