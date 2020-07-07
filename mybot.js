@@ -470,92 +470,101 @@ async function tklProcess(msg,id,title){
   }
   console.log('income_radio',income_radio)
   msg.say('正在查询优惠信息...')
-  client.execute('taobao.tbk.dg.material.optional', {
-    'adzone_id':botConfig.tbk.adzone_id,
-    'q':title,
-    'page_size':100,
-  }, function(error, response) {
-    if (!error) {
-      // console.log(response.result_list.map_data);
-      let isExist = false;
-      var dd = response.result_list.map_data
-      // console.log(response.total_results)
-      // console.log(response.result_list.map_data)
-      for(a in response.result_list.map_data){
-        // console.log(dd[a].item_id);
-        if(dd[a].item_id ==id){
-          // console.log('https:'+dd[a].url)
-          // client.execute('taobao.tbk.tpwd.create', {
-          //   'text':'测试淘口令是否生成',
-          //   'url':'https:'+dd[a].url
-          // }, function(error, response) {
-          //   //if (!error) console.log(response);
-          //   //else console.log(error);
-          // })
-          // console.log(dd[a])
-          if(dd[a].coupon_share_url){
-            console.log('https:'+dd[a].coupon_share_url)
-            client.execute('taobao.tbk.tpwd.create', {
-              'text':'测试淘口令是否生成',
-              'url':'https:'+dd[a].coupon_share_url
+    let page_size = 100
+    let page_no = 0
+    let queryTotleCount = page_size
+    let isExist = false;//优惠信息是否存在
+    while(Math.ceil(queryTotleCount/page_size)>page_no){
+        ++page_no;
+        await new Promise(function(resolve,reject){
+            console.log('第几次进入查询',page_no)
+            client.execute('taobao.tbk.dg.material.optional', {
+                'adzone_id':botConfig.tbk.adzone_id,
+                'q':title,
+                'page_size':page_size,
+                'page_no':page_no,
             }, function(error, response) {
-              if (!error){
-                console.log(response);
-                let zk_final_price = Number(dd[a].zk_final_price)
-                let coupon_start_fee = Number(dd[a].coupon_start_fee)
-                let coupon_amount = Number(dd[a].coupon_amount)
-                if(zk_final_price>coupon_start_fee){
-                  let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*(zk_final_price-coupon_amount))/100//10%的服务费
-                  msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                if (!error) {
+                    console.log('查询第几页数据',page_no)
+                    queryTotleCount = response.total_results
+                    console.log('共查询到数据',queryTotleCount,'条,本页数据',response.result_list.map_data.length,'条')
+                    // console.log(response.result_list.map_data);
+                    console.log(response)
+                    var dd = response.result_list.map_data
+        
+                    for(a in response.result_list.map_data){
+                        // console.log(dd[a].item_id);
+                        if(dd[a].item_id ==id){
+                            console.log("查询到优惠信息",dd[a])
+                            // console.log(dd[a])
+                            if(dd[a].coupon_share_url){
+                              console.log('https:'+dd[a].coupon_share_url)
+                              client.execute('taobao.tbk.tpwd.create', {
+                                'text':'优惠购',
+                                'url':'https:'+dd[a].coupon_share_url
+                              }, function(error, response) {
+                                if (!error){
+                                  console.log(response);
+                                  let zk_final_price = Number(dd[a].zk_final_price)
+                                  let coupon_start_fee = Number(dd[a].coupon_start_fee)
+                                  let coupon_amount = Number(dd[a].coupon_amount)
+                                  if(zk_final_price>coupon_start_fee){
+                                    let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*(zk_final_price-coupon_amount))/100//10%的服务费
+                                    msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                  }else{
+                                    let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*zk_final_price)/100//10%的服务费
+                                    msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                  }
+                                  try {
+                                    shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
+                                  } catch (error) {
+                                    console.log('用户分享表记录数据出错')
+                                  }
+                                }else{
+                                  msg.say('未查询到优惠信息')
+                                  console.log('优惠商品链接(带券)生成淘口令失败',error);
+                                } 
+                              })
+                            }else if(dd[a].url){
+                              console.log('https:'+dd[a].url)
+                              client.execute('taobao.tbk.tpwd.create', {
+                                'text':'优惠购',
+                                'url':'https:'+dd[a].url
+                              }, function(error, response) {
+                                if (!error){
+                                  let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*Number(dd[a].zk_final_price))/100//10%的服务费
+                                  console.log(response);
+                                  msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                  try {
+                                    shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
+                                  } catch (error) {
+                                    console.log('用户分享表记录数据出错')
+                                  }
+                                }else{
+                                  msg.say('未查询到优惠信息')
+                                  console.log('优惠商品链接生成淘口令失败',error);
+                                } 
+                              })
+                            }
+                            
+                            isExist = true;
+                            break;
+                        }
+                    }
                 }else{
-                  let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*zk_final_price)/100//10%的服务费
-                  msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                  console.log('查询优惠接口调用失败',error)
                 }
-                try {
-                  shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
-                } catch (error) {
-                  console.log('用户分享表记录数据出错')
-                }
-              } 
-              else{
-                msg.say('未查询到优惠信息')
-                console.log(error);
-              } 
+                resolve()//本次异步结果同步返回,执行下一次请求
             })
-          }else if(dd[a].url){
-            console.log('https:'+dd[a].url)
-          client.execute('taobao.tbk.tpwd.create', {
-            'text':'测试淘口令是否生成',
-            'url':'https:'+dd[a].url
-          }, function(error, response) {
-            if (!error){
-              let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*Number(dd[a].zk_final_price))/100//10%的服务费
-              console.log(response);
-              msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
-              try {
-                shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
-              } catch (error) {
-                console.log('用户分享表记录数据出错')
-              }
-            } 
-            else{
-              msg.say('未查询到优惠信息')
-              console.log(error);
-            } 
-          })
-          }
-          
-          isExist = true;
+        })
+        if(isExist){
+          console.log('第',page_no,'次循环结束查询到优惠信息,退出循环')
           break;
+        }else{
+          console.log('第',page_no,'次循环结束未查询到优惠信息')
         }
-      }
-      if(!isExist)msg.say('未查询到优惠信息')
     }
-    else{
-      msg.say('未查询到优惠信息')
-      console.log(error);
-    } 
-  })
+    if(!isExist)msg.say('未查询到优惠信息')
 }
 
 
