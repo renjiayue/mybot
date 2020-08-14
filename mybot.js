@@ -151,6 +151,19 @@ async function onMessage (msg) {
     // console.log('消息是自己发送的,不做处理')
     return
   }
+  const contact = msg.from()
+  if(contact){
+    const isOfficial = contact.type() === bot.Contact.Type.Official
+    if(isOfficial){
+      console.log('公众号消息,直接转发给管理员')
+      botUtil.sendStringMessageToAdmin('收到公众号消息,请查看')
+      return
+    }else{
+      console.log('个人消息')
+    }
+  }else{
+    console.log('contact为空')
+  }
   // if (msg.age() > 60) {
   //   console.log('消息被丢弃,因为已经超时(1分钟)')
   //   return
