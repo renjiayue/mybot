@@ -407,16 +407,37 @@ async function eleRedBag(msg){
   }, function(error, response) {
     if (!error) {
       console.log(response);
-      msg.say('获取饿了么小程序码\r\n识别领取红包')
-      const fileBox = FileBox.fromUrl(response.data.wx_qrcode_url)
-	    fileBoxMap.elefileBox = fileBox
-      msg.say(fileBox)
+      if(response.data.wx_qrcode_url){
+        msg.say('获取饿了么小程序码\r\n识别领取红包')
+        const fileBox = FileBox.fromUrl(response.data.wx_qrcode_url)
+        fileBoxMap.elefileBox = fileBox
+        msg.say(fileBox)
+      }else{
+        msg.say('点击下方链接领取饿了么红包')
+        msg.say(response.data.short_click_url)
+      }
     }else {
       console.log(error);
       msg.say("红包获取失败")
       botUtil.sendStringMessageToAdmin("饿了么红包调用接口请求失败")
     }
   })
+  // client.execute('taobao.tbk.activitylink.get', {
+  //   'adzone_id':botConfig.tbk.adzone_id,
+  //   'promotion_scene_id':'1571715733668'
+  // }, function(error, response) {
+  //   if (!error) {
+  //     console.log(response);
+  //     msg.say('获取饿了么小程序码\r\n识别领取红包')
+  //     const fileBox = FileBox.fromUrl(response.data.wx_qrcode_url)
+	//     fileBoxMap.elefileBox = fileBox
+  //     msg.say(fileBox)
+  //   }else {
+  //     console.log(error);
+  //     msg.say("红包获取失败")
+  //     botUtil.sendStringMessageToAdmin("饿了么红包调用接口请求失败")
+  //   }
+  // })
 }
 
 async function eleNewRetailRedBag(msg){
@@ -434,10 +455,15 @@ async function eleNewRetailRedBag(msg){
   }, function(error, response) {
     if (!error) {
       console.log(response);
-      msg.say('获取饿了么果蔬商超小程序码\r\n识别领取红包')
-      const fileBox = FileBox.fromUrl(response.data.wx_qrcode_url)
-	    fileBoxMap.eleNewRetailfileBox = fileBox
-      msg.say(fileBox)
+      if(response.data.wx_qrcode_url){
+        msg.say('获取饿了么果蔬商超小程序码\r\n识别领取红包')
+        const fileBox = FileBox.fromUrl(response.data.wx_qrcode_url)
+        fileBoxMap.eleNewRetailfileBox = fileBox
+        msg.say(fileBox)
+      }else{
+        msg.say('点击下方链接领取饿了么果蔬商超红包')
+        msg.say(response.data.short_click_url)
+      }
     }else {
       console.log(error);
       msg.say("红包获取失败")
