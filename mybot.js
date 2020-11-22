@@ -596,7 +596,7 @@ async function tklProcess(msg,id,title){
                         }
                     }
                 }else{
-                  console.log('查询优惠接口调用失败',error)
+                  console.log('查询优惠接口调用失败',error,'test')
                 }
                 resolve()//本次异步结果同步返回,执行下一次请求
             })
