@@ -137,6 +137,17 @@ module.exports={
         if(execResult&&execResult[0]){
             return execResult[0]
         }
+
+		// 其他解析
+		regExp = new RegExp("[a-zA-Z0-9]{12}");
+		execResult = regExp.exec(content)
+        if(!(execResult&&execResult[0])){
+            regExp = new RegExp('[a-zA-Z0-9]{11}')
+			execResult = regExp.exec(content)
+			if(execResult&&execResult[0]){
+				return '￥'+execResult[0]+'￥'
+			}
+        }
         return null
     }
 }

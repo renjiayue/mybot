@@ -156,7 +156,7 @@ async function onMessage (msg) {
     const isOfficial = contact.type() === bot.Contact.Type.Official
     if(isOfficial){
       console.log('公众号消息,直接转发给管理员')
-      botUtil.sendStringMessageToAdmin('收到公众号消息,请查看')
+      //botUtil.sendStringMessageToAdmin('收到公众号消息,请查看')
       return
     }else{
       console.log('个人消息')
@@ -210,6 +210,10 @@ async function onMessage (msg) {
           }
           console.log('三方淘口令解析为商品id成功')
           let goodsTitle = thirdParty.content;
+		  //安卓手淘聚划算title处理
+			goodsTitle = goodsTitle.replace('这个#聚划算团购#宝贝不错:','')
+			goodsTitle = goodsTitle.replace('(分享自@手机淘宝android客户端)','')
+			console.log('处理完聚划算后title是:'+goodsTitle)
           tklProcess(msg,goodsId,goodsTitle)
           return 
         }
@@ -479,6 +483,7 @@ async function eleNewRetailRedBag(msg){
  * @param {*} title 商品title
  */
 async function tklProcess(msg,id,title){
+  // title = '彩色粗划重点背书神器闪光莹光银光萤光笔'
   console.log('需要查询商品的id是'+id+'title是'+title)
   let income_radio = 0.8
   let wx_id  = msg.payload.fromId
@@ -508,12 +513,12 @@ async function tklProcess(msg,id,title){
     console.log(error)
   }
   console.log('income_radio',income_radio)
-  msg.say('正在查询优惠信息...')
+  msg.say('正在查询优惠信息...\n温馨提示:大促期间下单使用红包可能会导致没有返利,建议把红包使用在无优惠的商品上')
     let page_size = 100
     let page_no = 0
     let queryTotleCount = page_size
     let isExist = false;//优惠信息是否存在
-    while(Math.ceil(queryTotleCount/page_size)>page_no){
+    while(Math.ceil(queryTotleCount/page_size)>page_no && page_no<30){
         ++page_no;
         await new Promise(function(resolve,reject){
             console.log('第几次进入查询',page_no)
@@ -549,10 +554,10 @@ async function tklProcess(msg,id,title){
                                   let coupon_amount = Number(dd[a].coupon_amount)
                                   if(zk_final_price>coupon_start_fee){
                                     let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*(zk_final_price-coupon_amount))/100//10%的服务费
-                                    msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                    msg.say(userInfo.id+"优惠淘口令为: "+response.data.password_simple+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   }else{
                                     let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*zk_final_price)/100//10%的服务费
-                                    msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                    msg.say(userInfo.id+"优惠淘口令为: "+response.data.password_simple+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   }
                                   try {
                                     shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
@@ -573,7 +578,7 @@ async function tklProcess(msg,id,title){
                                 if (!error){
                                   let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*Number(dd[a].zk_final_price))/100//10%的服务费
                                   console.log(response);
-                                  msg.say("优惠淘口令为: "+response.data.model+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                  msg.say(userInfo.id+"优惠淘口令为: "+response.data.password_simple+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   try {
                                     shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
                                   } catch (error) {
@@ -603,7 +608,17 @@ async function tklProcess(msg,id,title){
           console.log('第',page_no,'次循环结束未查询到优惠信息')
         }
     }
-    if(!isExist)msg.say('未查询到优惠信息')
+    if(!isExist){
+      msg.say('未查询到优惠信息')
+
+      if(page_no==30){
+        botUtil.sendStringMessageToAdmin("3000条仍查询失败,需手动查询")
+      }else{
+        botUtil.sendStringMessageToAdmin("未查询到优惠信息,需手动查询")
+      }
+      shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:id})
+      botUtil.sendStringMessageToAdmin(msg.text()+'(文本内容)')
+    }
 }
 
 
