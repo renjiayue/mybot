@@ -1,6 +1,13 @@
+//使用最新版的 先卸载旧版本
+npm uninstall wechaty
+npm uninstall wechaty-puppet-hostie
+// 不再使用 padplus
+// npm uninstall wechaty-puppet-padplus
+// npm install wechaty-puppet-padplus
+npm init --yes
 npm install wechaty
 npm install qrcode-terminal
-npm install wechaty-puppet-padplus
+npm install wechaty-puppet-hostie
 
 npm install sequelize
 npm install mysql2

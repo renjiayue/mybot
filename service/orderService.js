@@ -86,16 +86,18 @@ class OrderService extends BaseService{
                             if(isNewOrder){
                                 console.log('新增')
                                 shareOrder = JSON.parse(JSON.stringify(order)); 
-                                //除id和用户id外.全部取order中的信息
+                                //除id和用户id,佣金比例外.全部取order中的信息
                                 shareOrder.user_id =  shareUser.id
+                                shareOrder.income_radio = shareUser.income_radio
                                 shareOrder = (await OrderService.shareOrderModel.create(shareOrder)).dataValues
                                 // console.log(shareOrder)
                             }else{
                                 console.log('更新')
                                 let oldShareOrder = (await OrderService.shareOrderModel.findByFilter(null,{trade_id:order.trade_id}))[0].dataValues
                                 shareOrder = JSON.parse(JSON.stringify(order)); 
-                                //除id和用户id外.全部取order中的信息
+                                //除id和用户id,佣金比例外.全部取order中的信息
                                 shareOrder.id = oldShareOrder.id
+                                shareOrder.income_radio = shareUser.income_radio
                                 shareOrder.user_id =  shareUser.id
                             }
                             //重新计算收益
@@ -104,6 +106,11 @@ class OrderService extends BaseService{
                                 // console.log(order.pub_share_pre_fee)
                                 // console.log(order.subsidy_fee)
                                 // console.log(shareUser.income_radio)
+                                let income_radio = shareOrder.income_radio
+                                if(!income_radio){
+                                    console.log('订单中的佣金比例不存在,则取用户的佣金比例:'+shareUser.income_radio)
+                                    income_radio = shareUser.income_radio
+                                }
                                 shareOrder.pub_share_pre_fee = Math.floor(((Number(order.pub_share_pre_fee)*(1-0.1))-Number(order.subsidy_fee)*0.2)*shareUser.income_radio*100)/100
                                 // console.log(shareOrder.pub_share_pre_fee)
                             }else if(order.tk_status==3){

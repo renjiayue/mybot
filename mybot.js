@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 我的第一个机器人
  */
 
@@ -11,7 +11,7 @@ const { Wechaty,Contact,Room, config,Message,Friendship} = require('wechaty')
 const { FileBox }  = require('file-box')
 const { generate } = require('qrcode-terminal')
 
-const { PuppetPadplus } =  require('wechaty-puppet-padplus')
+// const { PuppetPadplus } =  require('wechaty-puppet-padplus')
 
 const botConfig = require('./botConfig')
 
@@ -151,6 +151,11 @@ async function onMessage (msg) {
     // console.log('消息是自己发送的,不做处理')
     return
   }
+  if(msg.room()){
+	console.log(msg.text())
+	console.log('群消息不做处理')
+    return
+  }
   const contact = msg.from()
   if(contact){
     const isOfficial = contact.type() === bot.Contact.Type.Official
@@ -200,20 +205,24 @@ async function onMessage (msg) {
       let tkl = taokoulingCom.contentToTkl(msgContent);
       console.log('tkl',tkl)
       if(tkl){
-        let thirdParty = await taokoulingCom.thirdPartyTkljx(tkl)
+        let thirdParty = null
+        // 不再使用 收费
+        // thirdParty = await taokoulingCom.thirdPartyTkljx(tkl)
         console.log('thirdParty',thirdParty)
         if(thirdParty){
           let goodsId  = await tkurlTop.thirdPartyTkljxToId(tkl)
+		      console.log('goodsId--1',goodsId)
           if(!goodsId){
+			      console.log('goodsId--2',goodsId)
             botUtil.sendStringMessageToAdmin('三方淘口令解析为商品id出错,请查看')
             goodsId = jiexiGoodsIdByUrl(thirdParty.url)
           }
           console.log('三方淘口令解析为商品id成功')
           let goodsTitle = thirdParty.content;
-		  //安卓手淘聚划算title处理
-			goodsTitle = goodsTitle.replace('这个#聚划算团购#宝贝不错:','')
-			goodsTitle = goodsTitle.replace('(分享自@手机淘宝android客户端)','')
-			console.log('处理完聚划算后title是:'+goodsTitle)
+          //安卓手淘聚划算title处理
+          goodsTitle = goodsTitle.replace('这个#聚划算团购#宝贝不错:','')
+          goodsTitle = goodsTitle.replace('(分享自@手机淘宝android客户端)','')
+          console.log('处理完聚划算后title是:'+goodsTitle)
           tklProcess(msg,goodsId,goodsTitle)
           return 
         }
@@ -251,10 +260,23 @@ async function onMessage (msg) {
               botUtil.sendStringMessageToAdmin('无法解析的链接地址,未解析出商品title:'+msgContent)
               return 
             }
+            console.log(titleExec,'titleExec')
             title = titleExec[0]
             title = title.replace(new RegExp('"title"[\\s]*:[\\s]*"'),'')
             title = title.substring(0,title.length-1)
             console.log('title是:'+title)
+
+            //处理优惠券链接
+            let index = title.indexOf('优惠券送给你')
+            if(index!=-1){
+              let subContent = title.substring(index)
+              let startIndex = subContent.indexOf('【')
+              let endIndex = subContent.indexOf('】')
+              if(startIndex!=-1 && endIndex!=-1){
+                title = subContent.substring(startIndex+1,endIndex)
+              }
+            }
+            console.log('处理完优惠券链接后title是:'+title)
 
             //安卓手淘聚划算title处理
             title = title.replace('这个#聚划算团购#宝贝不错:','')
@@ -382,6 +404,7 @@ console.log('服务器未能正确处理消息')
 
 //淘客相关
 var apiClient = require('./lib/api/topClient.js').TopClient;
+console.log('apiClient',apiClient)
 var dingtalkClient = require('./lib/api/dingtalkClient.js').DingTalkClient;
 var tmcClient = require('./lib/tmc/tmcClient.js').TmcClient;
 
@@ -393,16 +416,16 @@ var tmcClient = require('./lib/tmc/tmcClient.js').TmcClient;
 
 
 // ApiClient = require('ApiClient').ApiClient;
-ApiClient  = apiClient
+var ApiClient  = apiClient
 var client = new ApiClient(botConfig.tbk.client);
 
 async function eleRedBag(msg){
-  if(fileBoxMap.elefileBox){
-    await msg.say('获取饿了么小程序码\r\n识别领取红包')
-    await msg.say(fileBoxMap.elefileBox)
-    console.log('文件存在不用重新下载');
-    return;
-  }
+  //if(fileBoxMap.elefileBox){
+    //await msg.say('获取饿了么小程序码\r\n识别领取红包')
+    //await msg.say(fileBoxMap.elefileBox)
+    //console.log('文件存在不用重新下载');
+    //return;
+  //}
 	  
   
   client.execute('taobao.tbk.activity.info.get', {
@@ -445,12 +468,12 @@ async function eleRedBag(msg){
 }
 
 async function eleNewRetailRedBag(msg){
-  if(fileBoxMap.eleNewRetailfileBox){
-    await msg.say('获取饿了么果蔬商超小程序码\r\n识别领取红包')
-    await msg.say(fileBoxMap.eleNewRetailfileBox)
-    console.log('文件存在不用重新下载');
-    return;
-  }
+  //if(fileBoxMap.eleNewRetailfileBox){
+    //await msg.say('获取饿了么果蔬商超小程序码\r\n识别领取红包')
+    //await msg.say(fileBoxMap.eleNewRetailfileBox)
+    //console.log('文件存在不用重新下载');
+    //return;
+  //}
 	  
   
   client.execute('taobao.tbk.activity.info.get', {
@@ -554,10 +577,10 @@ async function tklProcess(msg,id,title){
                                   let coupon_amount = Number(dd[a].coupon_amount)
                                   if(zk_final_price>coupon_start_fee){
                                     let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*(zk_final_price-coupon_amount))/100//10%的服务费
-                                    msg.say(userInfo.id+"优惠淘口令为: "+response.data.password_simple+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                    msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   }else{
                                     let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*zk_final_price)/100//10%的服务费
-                                    msg.say(userInfo.id+"优惠淘口令为: "+response.data.password_simple+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                    msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   }
                                   try {
                                     shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
@@ -578,7 +601,7 @@ async function tklProcess(msg,id,title){
                                 if (!error){
                                   let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*Number(dd[a].zk_final_price))/100//10%的服务费
                                   console.log(response);
-                                  msg.say(userInfo.id+"优惠淘口令为: "+response.data.password_simple+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                  msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   try {
                                     shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
                                   } catch (error) {
@@ -596,7 +619,7 @@ async function tklProcess(msg,id,title){
                         }
                     }
                 }else{
-                  console.log('查询优惠接口调用失败',error,'test')
+                  console.log('查询优惠接口调用失败',error)
                 }
                 resolve()//本次异步结果同步返回,执行下一次请求
             })

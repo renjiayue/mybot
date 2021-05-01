@@ -11,6 +11,8 @@ class ShareOrderModel extends BaseModel{
 			pub_share_fee: {type: Sequelize.STRING},//结算预估收入
 			pub_share_pre_fee: {type: Sequelize.STRING},//付款预估收入
 			refund_tag: {type: Sequelize.INTEGER},//维权标签，0 含义为非维权 1 含义为维权订单
+			tk_earning_time:{type: Sequelize.STRING},//订单确认收货后且商家完成佣金支付的时间
+			income_radio:{type:Sequelize.DECIMAL(10, 2)},//本订单佣金比例
 		})
 		this.model = super.getModel()
 		this.model.sync()

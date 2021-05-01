@@ -1,0 +1,32 @@
+{
+  "name": "mybot",
+  "version": "1.0.0",
+  "description": "基于wechaty的一个简单淘宝客的实现",
+  "main": "mybot.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/renjiayue/mybot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/renjiayue/mybot/issues"
+  },
+  "homepage": "https://github.com/renjiayue/mybot#readme",
+  "dependencies": {
+    "mysql2": "^2.2.5",
+    "node-schedule": "^2.0.0",
+    "qrcode-terminal": "^0.12.0",
+    "sequelize": "^6.6.2",
+    "wechaty": "^0.60.7",
+    "wechaty-puppet-hostie": "^0.12.257"
+  }
+}

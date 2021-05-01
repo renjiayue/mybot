@@ -6,10 +6,11 @@ const Op = Sequelize.Op
 
 const  scheduleCronstyle = async()=>{
     //0分钟开始每6分钟定时执行一次:
-    schedule.scheduleJob('0 0/6 * * * ? ',async()=>{
+    schedule.scheduleJob('0 0/2 * * * ? ',async()=>{
         let nodeCurdate = new Date()
-        // let curdate = new Date(nodeCurdate.getTime()+(480*60-1)*1000)
-        let curdate = nodeCurdate
+        //+8小时
+        let curdate = new Date(nodeCurdate.getTime()+(480*60-1)*1000)
+        // let curdate = nodeCurdate
         let sixBefore = new Date(curdate.getTime()-(20*60-1)*1000)
         // console.log(sixBefore.Format("yyyy-MM-dd hh:mm:ss"))
         // console.log('scheduleCronstyle:' + curdate.Format("yyyy-MM-dd hh:mm:ss"));
@@ -48,11 +49,18 @@ const  scheduleCronstyle = async()=>{
       pollingObj.curIndex = pollingObj.curIndex+1
     }
     //3分钟开始每6分钟定时执行一次:
-    schedule.scheduleJob('0 3/6 * * * ? ',async()=>{
+    schedule.scheduleJob('0 0/5 * * * ? ',async()=>{
+      let curdate = new Date(new Date().getTime()+(480*60-1)*1000)
+      if(curdate.Format("hh:mm:ss")>'21:45:00' || curdate.Format("hh:mm:ss")<'08:45:00'){
+        console.log('当前时间',curdate.Format("hh:mm:ss"),'不进行结算通知')
+        return
+      }
       if(pollingObj.isPollAgain){
         console.log('scheduleCronstyle:' + new Date());
         //3  13 为最终状态
-        let unclearedList = await orderService.baseFindByFilterOrder(null,{tk_status:{[Op.notIn]: [3, 13]}},[['tb_paid_time', 'ASC']])
+        let threeMonthDate = new Date(new Date().getTime()+(480*60)*1000-(90*24*60*60)*1000)
+        console.log('三个月前时间为',threeMonthDate.Format("yyyy-MM-dd hh:mm:ss"))
+        let unclearedList = await orderService.baseFindByFilterOrder(null,{tk_status:{[Op.notIn]: [3, 13]},tb_paid_time:{[Op.gt]:threeMonthDate.Format("yyyy-MM-dd hh:mm:ss")}},[['tb_paid_time', 'ASC']])
         if(unclearedList){
           // console.log(unclearedList)
           for(let i in unclearedList){

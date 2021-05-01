@@ -1,15 +1,22 @@
 const { Wechaty,Contact,Room, config,Message,Friendship} = require('wechaty')
-const { PuppetPadplus } =  require('wechaty-puppet-padplus')
+// const { PuppetPadplus } =  require('wechaty-puppet-padplus')
+// const { hostie } =  require('wechaty-puppet-hostie')
+const { puppetService } =  require('wechaty-puppet-service')
 const botConfig = require('./botConfig')
 
 class BotUtil {
     constructor(){
+        const token = botConfig.bot.token
         this.bot = new Wechaty({
             // profile : config.default.DEFAULT_PROFILE,
-            puppet: new PuppetPadplus({
-              token: botConfig.bot.token,
-            }),
-            name: botConfig.bot.name, 
+            // puppet: new PuppetPadplus({
+            //   token: botConfig.bot.token,
+            // }),	
+            puppet: 'wechaty-puppet-service',
+            puppetOptions: {
+                token,
+            }
+            // name: botConfig.bot.name, 
           
           }),
         //   this.bot.start()

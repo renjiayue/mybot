@@ -6,6 +6,7 @@ const request = require("request")
 //const urlencode = require("urlencode")
 
 module.exports={
+    //不再使用 收费
     thirdPartyTkljx: function(tklContent){
         return new  Promise(function(resolve,reject){
             request({
@@ -19,13 +20,15 @@ module.exports={
                 body: "apikey="+botConfig.taokoulingCom.apikey+"&tkl="+tklContent
             }, function(error, response, body) {
                 if (!error && response.statusCode == 200) {
-                    console.log('')
                     console.log(body) // 请求成功的处理逻辑
                     if(body.code==1){
                         resolve(body)
-                    }
+                    }else{
+						resolve(null);
+					}
                 }else{
                     console.log('server酱消息发送失败')
+					resolve(null);
                 }
             });
 
@@ -147,7 +150,15 @@ module.exports={
 			if(execResult&&execResult[0]){
 				return '￥'+execResult[0]+'￥'
 			}
-        }
+        }else{
+			regExp = new RegExp('[a-zA-Z0-9]{11}')
+				
+			execResult = regExp.exec(content)
+				console.log(execResult)
+			if(execResult&&execResult[0]){
+				return '￥'+execResult[0]+'￥'
+			}
+		}
         return null
     }
 }
