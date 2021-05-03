@@ -223,17 +223,16 @@ async function onMessage (msg) {
           console.log('goodsId',dtkjx.goodsId)
           console.log('goodsTitle',dtkjx.originInfo.title)
           if(dtkjx.goodsId){
-            let trans = await dataoke.getPrivilegeLink(dtkjx.goodsId)
-            console.log('大淘客高效转链成功',trans)
             let wx_id  = msg.payload.fromId
             console.log('wx_id',wx_id)
             let userInfo
             userInfo = await userService.baseFindByFilter(null,{'wx_id':wx_id})
             if(userInfo[0]){
               userInfo = userInfo[0].dataValues
-              // console.log(userInfo)
-              // income_radio = userInfo.income_radio
             }
+            shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dtkjx.goodsId})
+            let trans = await dataoke.getPrivilegeLink(dtkjx.goodsId)
+            console.log('大淘客高效转链成功',trans)
             let sendResult = sendDiscountInfo(msg,userInfo,trans.tpwd,trans.originalPrice,null,trans.actualPrice,trans.couponInfo,Number(trans.maxCommissionRate)*100)
             if(sendResult){
               console.log("大淘客优惠信息发送成功")
@@ -728,8 +727,13 @@ function sendDiscountInfo(msg,userInfo,simplePassword,originalPrice,currentPrice
   if(currentPrice){
     discountMsg += "\n现价"+currentPrice+"元"
   }
-  if(actualPrice && couponInfo){//实际价格并且有优惠券
-    discountMsg += "\n券后价"+actualPrice+"元"
+  if(actualPrice){//实际价格并且有优惠券
+    if(couponInfo){
+      discountMsg += "\n券后价"+actualPrice+"元"
+    }else if(!currentPrice){
+      //没有现价 没有券 但是有券后价的情况
+      discountMsg += "\n现价"+actualPrice+"元"
+    }
   }
   if(!actualPrice){
     actualPrice = currentPrice
