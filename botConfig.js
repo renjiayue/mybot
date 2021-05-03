@@ -42,7 +42,34 @@ module.exports={
     tkurlTop:{
         url:'http://api.tkurl.top/api/alimama/tpwd_convert',
         appkey:'****',
-    }
+    },
 
+    //http://www.dataoke.com/
+    dataoke:{
+        appSecret:'****',
+        appKey:'****',
+        api:{
+            getCategoryTop100:{
+                url:'https://openapi.dataoke.com/api/category/get-top100',
+                version:'v1.0.0'
+            },
+            parseTaokouling:{
+                url:'https://openapi.dataoke.com/api/tb-service/parse-taokouling',
+                version:'v1.0.0'
+            },
+            parseContent:{
+                url:'https://openapi.dataoke.com/api/tb-service/parse-content',
+                version:'v1.0.0'
+            },
+            twdToTwd:{
+                url:'https://openapi.dataoke.com/api/tb-service/twd-to-twd',
+                version:'v1.0.0'
+            },
+            getPrivilegeLink:{
+                url:'https://openapi.dataoke.com/api/tb-service/get-privilege-link',
+                version:'v1.3.1'
+            },
+        }
+    }
 
 }

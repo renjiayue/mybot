@@ -19,6 +19,8 @@ const serverChan = require('./serverChan.js')
 
 const taokoulingCom = require('./taokoulingCom')
 
+const dataoke = require('./dataoke')
+
 const tkurlTop = require('./tkurlTop')
 
 const orderService = require("./service/orderService.js")
@@ -31,6 +33,8 @@ const {schedule}= require('./schedule.js')
 
 // node-request请求模块包
 const request = require("request")
+
+const default_income_radio = 0.6
 // 请求参数解码
 //const urlencode = require("urlencode")
 
@@ -205,30 +209,72 @@ async function onMessage (msg) {
       let tkl = taokoulingCom.contentToTkl(msgContent);
       console.log('tkl',tkl)
       if(tkl){
-        let thirdParty = null
+
+        //先使用大淘客转链
+        // let await dataoke.twdToTwd(tkl)
+
+        //使用大淘客解析 不使用转变的淘口令 使用原始的
+        //使用$ 不然请求会不识别字符
+        console.log(tkl.replace(/￥/g,'$'))
+        let dtkjx = await dataoke.commonParseContent(tkl.replace(/￥/g,'$'));
+        // console.log(dtkjx)
+        if(dtkjx){
+          // console.log('dtkjx',dtkjx)
+          console.log('goodsId',dtkjx.goodsId)
+          console.log('goodsTitle',dtkjx.originInfo.title)
+          if(dtkjx.goodsId){
+            let trans = await dataoke.getPrivilegeLink(dtkjx.goodsId)
+            console.log('大淘客高效转链成功',trans)
+            let wx_id  = msg.payload.fromId
+            console.log('wx_id',wx_id)
+            let userInfo
+            userInfo = await userService.baseFindByFilter(null,{'wx_id':wx_id})
+            if(userInfo[0]){
+              userInfo = userInfo[0].dataValues
+              // console.log(userInfo)
+              // income_radio = userInfo.income_radio
+            }
+            let sendResult = sendDiscountInfo(msg,userInfo,trans.tpwd,trans.originalPrice,null,trans.actualPrice,trans.couponInfo,Number(trans.maxCommissionRate)*100)
+            if(sendResult){
+              console.log("大淘客优惠信息发送成功")
+              return
+            }else{
+              console.log("大淘客高效转链失败")
+            }
+            if(dtkjx.originInfo.title){
+              tklProcess(msg,dtkjx.goodsId,dtkjx.originInfo.title)
+              return
+            }
+          }else{
+            console.log("大淘客商品解析失败")
+          }
+          // return
+        }
+
+        // let thirdParty = null
         // 不再使用 收费
         // thirdParty = await taokoulingCom.thirdPartyTkljx(tkl)
-        console.log('thirdParty',thirdParty)
-        if(thirdParty){
-          let goodsId  = await tkurlTop.thirdPartyTkljxToId(tkl)
-		      console.log('goodsId--1',goodsId)
-          if(!goodsId){
-			      console.log('goodsId--2',goodsId)
-            botUtil.sendStringMessageToAdmin('三方淘口令解析为商品id出错,请查看')
-            goodsId = jiexiGoodsIdByUrl(thirdParty.url)
-          }
-          console.log('三方淘口令解析为商品id成功')
-          let goodsTitle = thirdParty.content;
-          //安卓手淘聚划算title处理
-          goodsTitle = goodsTitle.replace('这个#聚划算团购#宝贝不错:','')
-          goodsTitle = goodsTitle.replace('(分享自@手机淘宝android客户端)','')
-          console.log('处理完聚划算后title是:'+goodsTitle)
-          tklProcess(msg,goodsId,goodsTitle)
-          return 
-        }
+        // console.log('thirdParty',thirdParty)
+        // if(thirdParty){
+        //   let goodsId  = await tkurlTop.thirdPartyTkljxToId(tkl)
+		    //   console.log('goodsId--1',goodsId)
+        //   if(!goodsId){
+			  //     console.log('goodsId--2',goodsId)
+        //     botUtil.sendStringMessageToAdmin('三方淘口令解析为商品id出错,请查看')
+        //     goodsId = jiexiGoodsIdByUrl(thirdParty.url)
+        //   }
+        //   console.log('三方淘口令解析为商品id成功')
+        //   let goodsTitle = thirdParty.content;
+        //   //安卓手淘聚划算title处理
+        //   goodsTitle = goodsTitle.replace('这个#聚划算团购#宝贝不错:','')
+        //   goodsTitle = goodsTitle.replace('(分享自@手机淘宝android客户端)','')
+        //   console.log('处理完聚划算后title是:'+goodsTitle)
+        //   tklProcess(msg,goodsId,goodsTitle)
+        //   return 
+        // }
+        // console.log('三方解析淘口令失败,请查看')
+        // botUtil.sendStringMessageToAdmin('三方解析淘口令失败,请查看')
       }
-      console.log('三方解析淘口令失败,请查看')
-      botUtil.sendStringMessageToAdmin('三方解析淘口令失败,请查看')
       //test 正则
       let tolurlReg = new RegExp('[a-zA-z]+://[^\\s]*')
       let tolurlRegExec = tolurlReg.exec(msgContent)
@@ -508,7 +554,7 @@ async function eleNewRetailRedBag(msg){
 async function tklProcess(msg,id,title){
   // title = '彩色粗划重点背书神器闪光莹光银光萤光笔'
   console.log('需要查询商品的id是'+id+'title是'+title)
-  let income_radio = 0.8
+  let income_radio = default_income_radio
   let wx_id  = msg.payload.fromId
   console.log('wx_id',wx_id)
   let userInfo
@@ -522,7 +568,7 @@ async function tklProcess(msg,id,title){
     }else{
       await userService.baseCreate({
         wx_id:wx_id,
-        income_radio:0.8,
+        income_radio:default_income_radio,
         total_commission:0,
         comment:msg.from().name()
       })
@@ -536,7 +582,7 @@ async function tklProcess(msg,id,title){
     console.log(error)
   }
   console.log('income_radio',income_radio)
-  msg.say('正在查询优惠信息...\n温馨提示:大促期间下单使用红包可能会导致没有返利,建议把红包使用在无优惠的商品上')
+  
     let page_size = 100
     let page_no = 0
     let queryTotleCount = page_size
@@ -576,11 +622,13 @@ async function tklProcess(msg,id,title){
                                   let coupon_start_fee = Number(dd[a].coupon_start_fee)
                                   let coupon_amount = Number(dd[a].coupon_amount)
                                   if(zk_final_price>coupon_start_fee){
-                                    let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*(zk_final_price-coupon_amount))/100//10%的服务费
-                                    msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                    // let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*(zk_final_price-coupon_amount))/100//10%的服务费
+                                    sendDiscountInfo(msg,userInfo,response.data.password_simple,dd[a].reserve_price,zk_final_price,zk_final_price-coupon_amount,dd[a].coupon_info,dd[a].commission_rate)
+                                    // msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘领券购买\n优惠券"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   }else{
-                                    let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*zk_final_price)/100//10%的服务费
-                                    msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                    // let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*zk_final_price)/100//10%的服务费
+                                    sendDiscountInfo(msg,userInfo,response.data.password_simple,dd[a].reserve_price,zk_final_price,zk_final_price,dd[a].coupon_info,dd[a].commission_rate)
+                                    // msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘领券购买\n"+dd[a].coupon_info+"\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   }
                                   try {
                                     shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
@@ -599,9 +647,11 @@ async function tklProcess(msg,id,title){
                                 'url':'https:'+dd[a].url
                               }, function(error, response) {
                                 if (!error){
-                                  let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*Number(dd[a].zk_final_price))/100//10%的服务费
+                                  let zk_final_price = dd[a].zk_final_price
+                                  // let flAmt = Math.floor((1-0.1)*income_radio*Number(dd[a].commission_rate)/100*Number(dd[a].zk_final_price))/100//10%的服务费
                                   console.log(response);
-                                  msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
+                                  sendDiscountInfo(msg,userInfo,response.data.password_simple,dd[a].reserve_price,zk_final_price,zk_final_price,null,dd[a].commission_rate)
+                                  // msg.say(userInfo.id+"优惠淘口令为:http:// "+response.data.password_simple+" 全部复制打开手淘进行购买\n原价"+dd[a].reserve_price+"元\n现价"+dd[a].zk_final_price+"元\n预计获取返利"+flAmt+"元")
                                   try {
                                     shareService.insertOrUpdateShare({user_id:userInfo.id,item_id:dd[a].item_id})
                                   } catch (error) {
@@ -644,6 +694,52 @@ async function tklProcess(msg,id,title){
     }
 }
 
+/**
+ * 
+ * @param {*} msg 微信消息 必填
+ * @param {*} userInfo 用户信息
+ * @param {*} simplePassword 淘口令 必填
+ * @param {*} originalPrice 原价
+ * @param {*} currentPrice 现价
+ * @param {*} actualPrice 券后价
+ * @param {*} couponInfo 优惠券信息 文本
+ * @param {*} commissionRate  佣金比例*100 必填
+ * @returns 
+ */
+function sendDiscountInfo(msg,userInfo,simplePassword,originalPrice,currentPrice,actualPrice,couponInfo,commissionRate){
+  if(!msg || !simplePassword || !commissionRate){
+    return false
+  }
+  let income_radio = default_income_radio//默认返佣比例
+  let user_id = userInfo.id
+  if(userInfo){
+    income_radio = userInfo.income_radio
+    user_id = 1//随机数 用于ios14打开
+  }
+  let discountMsg = user_id+'优惠淘口令为: '+simplePassword+'/ 全部复制打开手淘'
+  if(couponInfo){
+    discountMsg += '领券购买\n优惠券'+couponInfo
+  }else{
+    discountMsg += '进行购买'
+  }
+  if(originalPrice){
+    discountMsg += "\n原价"+originalPrice+"元"
+  }
+  if(currentPrice){
+    discountMsg += "\n现价"+currentPrice+"元"
+  }
+  if(actualPrice && couponInfo){//实际价格并且有优惠券
+    discountMsg += "\n券后价"+actualPrice+"元"
+  }
+  if(!actualPrice){
+    actualPrice = currentPrice
+  }
+  console.log('income_radio',income_radio,'commissionRate',commissionRate,'actualPrice',actualPrice)
+  let flAmt = Math.floor((1-0.1)*income_radio*Number(commissionRate)/100*Number(actualPrice))/100//10%的服务费
+  discountMsg += "\n预计获取返利"+flAmt+"元"
+  msg.say(discountMsg)
+  return true
+}
 
 /**
  * 通过商品url解析商品id
